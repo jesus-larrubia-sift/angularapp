@@ -1,80 +1,46 @@
-var app = angular.module('flapperNews', ['ui.router']);
+var express = require('express');
+var path = require('path');
+var favicon = require('serve-favicon');
+var logger = require('morgan');
+var cookieParser = require('cookie-parser');
+var bodyParser = require('body-parser');
 
-app.config([
-  '$stateProvider',
-  '$urlRouterProvider',
-  function($stateProvider, $urlRouterProvider) {
+var index = require('./routes/index');
+var users = require('./routes/users');
 
-    $stateProvider
-      .state('home', {
-        url: '/home',
-        templateUrl: '/home.html',
-        controller: 'MainCtrl'
-      })
-      .state('posts', {
-        url: '/posts/{id}',
-        templateUrl: '/posts.html',
-        controller: 'PostsCtrl'
-      });
-    $urlRouterProvider.otherwise('home');
-  }
-]);
+var app = express();
 
-app.factory('posts', [function(){
-  var o = {
-    posts: []
-  };
-  return o;
-}]);
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
 
-app.controller('MainCtrl', [
-  '$scope',
-  'posts',
-  function($scope, posts){
+// uncomment after placing your favicon in /public
+//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
 
-    $scope.posts = posts.posts;
+app.use('/', index);
+app.use('/users', users);
 
-    $scope.addPost = function() {
-      if (!$scope.title || $scope.title == '') {return;}
-      $scope.posts.push({
-        title: $scope.title,
-        link: $scope.link,
-        upvotes: 0,
-        comments: [
-          {author: 'Joe', body: 'Cool post!', upvotes: 0},
-          {author: 'Bob', body: 'Great idea but everything is wrong!', upvotes: 0}
-        ]
-      });
-      $scope.title = '';
-      $scope.link = '';
-    };
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  var err = new Error('Not Found');
+  err.status = 404;
+  next(err);
+});
 
-    $scope.incrementUpvotes = function(post) {
-      post.upvotes += 1;
-    };
-  }
-]);
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-app.controller('PostsCtrl', [
-  '$scope',
-  '$stateParams',
-  'posts',
-  function($scope, $stateParams, posts) {
+  // render the error page
+  res.status(err.status || 500);
+  res.render('error');
+});
 
-    $scope.post = posts.posts[$stateParams.id];
-
-    $scope.addComment = function(){
-      if($scope.body === '') { return; }
-      $scope.post.comments.push({
-        body: $scope.body,
-        author: 'user',
-        upvotes: 0
-      });
-      $scope.body = '';
-    };
-
-    $scope.incrementUpvotes = function(comment) {
-      comment.upvotes += 1;
-    };
-  }
-]);
+module.exports = app;
